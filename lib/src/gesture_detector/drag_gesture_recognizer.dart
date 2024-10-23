@@ -7,17 +7,23 @@ typedef ShouldAccpetHorizontalOrVerticalDrag = bool Function(
 );
 
 mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
-  bool get canDrag =>
-      canHorizontalOrVerticalDrag == null || canHorizontalOrVerticalDrag!();
+  int _pointerCount = 0;
+
+  bool get canDrag {
+    return _pointerCount < 2 &&
+        canHorizontalOrVerticalDrag == null || canHorizontalOrVerticalDrag!();
+  }
+
+  @override
+  void addPointer(PointerDownEvent event) {
+    _pointerCount++;
+    super.addPointer(event);
+  }
 
   bool _shouldAccpet() {
     if (!canDrag) {
       return false;
     }
-    if (shouldAccpetHorizontalOrVerticalDrag != null) {
-      return shouldAccpetHorizontalOrVerticalDrag!(_velocityTrackers);
-    }
-
     if (_velocityTrackers.keys.length == 1) {
       return true;
     }
@@ -37,17 +43,30 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
   }
 
   CanHorizontalOrVerticalDrag? get canHorizontalOrVerticalDrag;
-  ShouldAccpetHorizontalOrVerticalDrag?
-      get shouldAccpetHorizontalOrVerticalDrag;
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _pointerCount = 0;
+    super.didStopTrackingLastPointer(pointer);
+  }
 
   @override
   void handleEvent(PointerEvent event) {
+
+    if (event is PointerUpEvent) {
+      _pointerCount--;
+    }
+    if(_pointerCount > 1){
+      resolve(GestureDisposition.rejected);
+      return;
+    }
     assert(_state != _DragState.ready);
     if (!event.synthesized &&
         (event is PointerDownEvent ||
             event is PointerMoveEvent ||
             event is PointerPanZoomStartEvent ||
             event is PointerPanZoomUpdateEvent)) {
+
       final VelocityTracker tracker = _velocityTrackers[event.pointer]!;
       if (event is PointerPanZoomStartEvent) {
         tracker.addPosition(event.timeStamp, Offset.zero);
@@ -74,7 +93,7 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
       final Offset localPosition = (event is PointerMoveEvent)
           ? event.localPosition
           : (event.localPosition +
-              (event as PointerPanZoomUpdateEvent).localPan);
+          (event as PointerPanZoomUpdateEvent).localPan);
       if (_state == _DragState.accepted) {
         _checkUpdate(
           sourceTimeStamp: event.timeStamp,
@@ -85,6 +104,7 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
         );
       } else {
         _pendingDragOffset += OffsetPair(local: localDelta, global: delta);
+
         _lastPendingEventTimestamp = event.timeStamp;
         _lastTransform = event.transform;
         final Offset movedLocally = _getDeltaForDetails(localDelta);
@@ -92,21 +112,16 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
             ? null
             : Matrix4.tryInvert(event.transform!);
         _globalDistanceMoved += PointerEvent.transformDeltaViaPositions(
-                    transform: localToGlobalTransform,
-                    untransformedDelta: movedLocally,
-                    untransformedEndPosition: localPosition)
-                .distance *
+            transform: localToGlobalTransform,
+            untransformedDelta: movedLocally,
+            untransformedEndPosition: localPosition)
+            .distance *
             (_getPrimaryValueFromOffset(movedLocally) ?? 1).sign;
-        if (_hasSufficientGlobalDistanceToAccept(
-                event.kind, gestureSettings?.touchSlop) &&
-            // zmtzawqlp
-            _shouldAccpet()) {
-          _hasDragThresholdBeenMet = true;
-          if (_acceptedActivePointers.contains(event.pointer)) {
-            _checkDrag(event.pointer);
-          } else {
-            resolve(GestureDisposition.accepted);
-          }
+        if ((_hasSufficientGlobalDistanceToAccept(
+            event.kind, gestureSettings?.touchSlop)
+            || (event.delta.distanceSquared > 10 && event.delta.dy < 2)
+        ) && _shouldAccpet()) {
+          resolve(GestureDisposition.accepted);
         }
       }
     }
@@ -116,9 +131,6 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
       _giveUpPointer(event.pointer);
     }
   }
-
-  @override
-  GestureVelocityTrackerBuilder get velocityTrackerBuilder => _defaultBuilder;
 }
 
 ExtendedVelocityTracker _defaultBuilder(PointerEvent event) =>

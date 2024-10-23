@@ -1,5 +1,7 @@
 import 'package:extended_image/extended_image.dart';
 
+import 'package:extended_image/src/gesture_detector/official.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -80,7 +82,7 @@ class ExtendedImageGesturePageView extends StatefulWidget {
     this.shouldAccpetHorizontalOrVerticalDrag,
   })  : controller = controller ?? _defaultPageController,
         childrenDelegate =
-            SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
+        SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
         physics = physics != null
             ? _defaultScrollPhysics.applyTo(physics)
             : _defaultScrollPhysics,
@@ -159,7 +161,7 @@ class ExtendedImageGesturePageView extends StatefulWidget {
   /// Whether should accpet horizontal or vertical drag at that time
   /// You can custom it by your base
   final ShouldAccpetHorizontalOrVerticalDrag?
-      shouldAccpetHorizontalOrVerticalDrag;
+  shouldAccpetHorizontalOrVerticalDrag;
 
   @override
   ExtendedImageGesturePageViewState createState() =>
@@ -171,13 +173,13 @@ class ExtendedImageGesturePageViewState
     with SingleTickerProviderStateMixin {
   MediaQueryData? _mediaQueryData;
   Map<Type, GestureRecognizerFactory> _gestureRecognizers =
-      const <Type, GestureRecognizerFactory>{};
+  const <Type, GestureRecognizerFactory>{};
   late GestureAnimation _gestureAnimation;
   ScrollPosition get position => pageController.position;
   ExtendedPageController get pageController => widget.controller;
   ExtendedImageGestureState? get extendedImageGestureState {
     return extendedImageGestureStates.lastWhere(
-        (ExtendedImageGestureState? element) => element?.mounted ?? false,
+            (ExtendedImageGestureState? element) => element?.mounted ?? false,
         orElse: () => null);
   }
 
@@ -189,7 +191,7 @@ class ExtendedImageGesturePageViewState
   }
 
   final Set<ExtendedImageGestureState?> extendedImageGestureStates =
-      <ExtendedImageGestureState?>{};
+  <ExtendedImageGestureState?>{};
 
   @override
   void initState() {
@@ -225,15 +227,15 @@ class ExtendedImageGesturePageViewState
           case Axis.vertical:
             _gestureRecognizers = <Type, GestureRecognizerFactory>{
               ExtendedVerticalDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                      ExtendedVerticalDragGestureRecognizer>(
-                () => ExtendedVerticalDragGestureRecognizer(
+              GestureRecognizerFactoryWithHandlers<
+                  ExtendedVerticalDragGestureRecognizer>(
+                    () => ExtendedVerticalDragGestureRecognizer(
                   canHorizontalOrVerticalDrag: canHorizontalOrVerticalDrag,
                   debugOwner: this,
                   shouldAccpetHorizontalOrVerticalDrag:
-                      widget.shouldAccpetHorizontalOrVerticalDrag,
+                  widget.shouldAccpetHorizontalOrVerticalDrag,
                 ),
-                (ExtendedVerticalDragGestureRecognizer instance) {
+                    (ExtendedVerticalDragGestureRecognizer instance) {
                   instance
                     ..onDown = onDragDown
                     ..onStart = onDragStart
@@ -251,15 +253,15 @@ class ExtendedImageGesturePageViewState
           case Axis.horizontal:
             _gestureRecognizers = <Type, GestureRecognizerFactory>{
               ExtendedHorizontalDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                      ExtendedHorizontalDragGestureRecognizer>(
-                () => ExtendedHorizontalDragGestureRecognizer(
+              GestureRecognizerFactoryWithHandlers<
+                  ExtendedHorizontalDragGestureRecognizer>(
+                    () => ExtendedHorizontalDragGestureRecognizer(
                   canHorizontalOrVerticalDrag: canHorizontalOrVerticalDrag,
                   debugOwner: this,
                   shouldAccpetHorizontalOrVerticalDrag:
-                      widget.shouldAccpetHorizontalOrVerticalDrag,
+                  widget.shouldAccpetHorizontalOrVerticalDrag,
                 ),
-                (ExtendedHorizontalDragGestureRecognizer instance) {
+                    (ExtendedHorizontalDragGestureRecognizer instance) {
                   instance
                     ..onDown = onDragDown
                     ..onStart = onDragStart
@@ -281,16 +283,16 @@ class ExtendedImageGesturePageViewState
         if (widget.controller.shouldIgnorePointerWhenScrolling) {
           _gestureRecognizers[ScaleGestureRecognizer] =
               GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-            () => ScaleGestureRecognizer(debugOwner: this),
-            (ScaleGestureRecognizer instance) {
-              instance
-                ..onStart = onScaleStart
-                ..onUpdate = onScaleUpdate
-                ..onEnd = onScaleEnd
-                ..dragStartBehavior = DragStartBehavior.start
-                ..gestureSettings = _mediaQueryData?.gestureSettings;
-            },
-          );
+                    () => ScaleGestureRecognizer(debugOwner: this),
+                    (ScaleGestureRecognizer instance) {
+                  instance
+                    ..onStart = onScaleStart
+                    ..onUpdate = onScaleUpdate
+                    ..onEnd = onScaleEnd
+                    ..dragStartBehavior = DragStartBehavior.start
+                    ..gestureSettings = _mediaQueryData?.gestureSettings;
+                },
+              );
         }
       }
     }
@@ -509,7 +511,7 @@ class ExtendedImageGesturePageViewState
       return;
     }
     for (final ExtendedImageGestureState? extendedImageGestureState
-        in extendedImageGestureStates) {
+    in extendedImageGestureStates) {
       extendedImageGestureState?.handleScaleStart(details);
     }
   }
@@ -519,7 +521,7 @@ class ExtendedImageGesturePageViewState
       return;
     }
     for (final ExtendedImageGestureState? extendedImageGestureState
-        in extendedImageGestureStates) {
+    in extendedImageGestureStates) {
       extendedImageGestureState?.handleScaleUpdate(details);
     }
   }
@@ -529,7 +531,7 @@ class ExtendedImageGesturePageViewState
     //   return;
     // }
     for (final ExtendedImageGestureState? extendedImageGestureState
-        in extendedImageGestureStates) {
+    in extendedImageGestureStates) {
       extendedImageGestureState?.handleScaleEnd(details);
     }
   }
