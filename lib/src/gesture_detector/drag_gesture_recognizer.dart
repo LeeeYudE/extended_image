@@ -2,25 +2,22 @@ part of 'official.dart';
 
 typedef CanHorizontalOrVerticalDrag = bool Function();
 
+typedef ShouldAccpetHorizontalOrVerticalDrag = bool Function(
+  Map<int, VelocityTracker> velocityTrackers,
+);
+
 mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
-
-  int _pointerCount = 0;
-
-  bool get canDrag {
-    return _pointerCount < 2 &&
-        canHorizontalOrVerticalDrag == null || canHorizontalOrVerticalDrag!();
-  }
-
-  @override
-  void addPointer(PointerDownEvent event) {
-    _pointerCount++;
-    super.addPointer(event);
-  }
+  bool get canDrag =>
+      canHorizontalOrVerticalDrag == null || canHorizontalOrVerticalDrag!();
 
   bool _shouldAccpet() {
     if (!canDrag) {
       return false;
     }
+    if (shouldAccpetHorizontalOrVerticalDrag != null) {
+      return shouldAccpetHorizontalOrVerticalDrag!(_velocityTrackers);
+    }
+
     if (_velocityTrackers.keys.length == 1) {
       return true;
     }
@@ -40,30 +37,17 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
   }
 
   CanHorizontalOrVerticalDrag? get canHorizontalOrVerticalDrag;
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {
-    _pointerCount = 0;
-    super.didStopTrackingLastPointer(pointer);
-  }
+  ShouldAccpetHorizontalOrVerticalDrag?
+      get shouldAccpetHorizontalOrVerticalDrag;
 
   @override
   void handleEvent(PointerEvent event) {
-
-    if (event is PointerUpEvent) {
-      _pointerCount--;
-    }
-    if(_pointerCount > 1){
-      resolve(GestureDisposition.rejected);
-      return;
-    }
     assert(_state != _DragState.ready);
     if (!event.synthesized &&
         (event is PointerDownEvent ||
             event is PointerMoveEvent ||
             event is PointerPanZoomStartEvent ||
             event is PointerPanZoomUpdateEvent)) {
-
       final VelocityTracker tracker = _velocityTrackers[event.pointer]!;
       if (event is PointerPanZoomStartEvent) {
         tracker.addPosition(event.timeStamp, Offset.zero);
@@ -101,7 +85,6 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
         );
       } else {
         _pendingDragOffset += OffsetPair(local: localDelta, global: delta);
-
         _lastPendingEventTimestamp = event.timeStamp;
         _lastTransform = event.transform;
         final Offset movedLocally = _getDeltaForDetails(localDelta);
@@ -114,11 +97,16 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
                     untransformedEndPosition: localPosition)
                 .distance *
             (_getPrimaryValueFromOffset(movedLocally) ?? 1).sign;
-        if ((_hasSufficientGlobalDistanceToAccept(
-            event.kind, gestureSettings?.touchSlop)
-            || (event.delta.distanceSquared > 10 && event.delta.dy < 2)
-        ) && _shouldAccpet()) {
-          resolve(GestureDisposition.accepted);
+        if (_hasSufficientGlobalDistanceToAccept(
+                event.kind, gestureSettings?.touchSlop) &&
+            // zmtzawqlp
+            _shouldAccpet()) {
+          _hasDragThresholdBeenMet = true;
+          if (_acceptedActivePointers.contains(event.pointer)) {
+            _checkDrag(event.pointer);
+          } else {
+            resolve(GestureDisposition.accepted);
+          }
         }
       }
     }
@@ -128,24 +116,13 @@ mixin DragGestureRecognizerMixin on _DragGestureRecognizer {
       _giveUpPointer(event.pointer);
     }
   }
-}
 
-abstract class ExtendedDragGestureRecognizer extends _DragGestureRecognizer
-    with DragGestureRecognizerMixin {
-  ExtendedDragGestureRecognizer({
-    super.debugOwner,
-    super.dragStartBehavior = DragStartBehavior.start,
-    super.velocityTrackerBuilder = _defaultBuilder,
-    super.supportedDevices,
-    super.allowedButtonsFilter,
-    this.canHorizontalOrVerticalDrag,
-  });
-
-  static ExtendedVelocityTracker _defaultBuilder(PointerEvent event) =>
-      ExtendedVelocityTracker.withKind(event.kind);
   @override
-  final CanHorizontalOrVerticalDrag? canHorizontalOrVerticalDrag;
+  GestureVelocityTrackerBuilder get velocityTrackerBuilder => _defaultBuilder;
 }
+
+ExtendedVelocityTracker _defaultBuilder(PointerEvent event) =>
+    ExtendedVelocityTracker.withKind(event.kind);
 
 class ExtendedHorizontalDragGestureRecognizer
     extends _HorizontalDragGestureRecognizer with DragGestureRecognizerMixin {
@@ -154,13 +131,15 @@ class ExtendedHorizontalDragGestureRecognizer
     super.supportedDevices,
     super.allowedButtonsFilter,
     this.canHorizontalOrVerticalDrag,
+    this.shouldAccpetHorizontalOrVerticalDrag,
   });
-
 
   @override
   final CanHorizontalOrVerticalDrag? canHorizontalOrVerticalDrag;
 
-
+  @override
+  final ShouldAccpetHorizontalOrVerticalDrag?
+      shouldAccpetHorizontalOrVerticalDrag;
 }
 
 class ExtendedVerticalDragGestureRecognizer
@@ -170,8 +149,12 @@ class ExtendedVerticalDragGestureRecognizer
     super.supportedDevices,
     super.allowedButtonsFilter,
     this.canHorizontalOrVerticalDrag,
+    this.shouldAccpetHorizontalOrVerticalDrag,
   });
 
   @override
   final CanHorizontalOrVerticalDrag? canHorizontalOrVerticalDrag;
+  @override
+  final ShouldAccpetHorizontalOrVerticalDrag?
+      shouldAccpetHorizontalOrVerticalDrag;
 }
