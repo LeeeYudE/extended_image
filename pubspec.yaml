@@ -12,7 +12,7 @@ dependencies:
   extended_image_library:
     git:
       url: https://github.com/LeeeYudE/extended_image_library.git
-      ref: 3382bffc5cfa3e9b9a81b58850211f6733503180
+      ref: bb03e4fab19e99bfa91c3dba5effaca2d983bbf3
   flutter:
     sdk: flutter
   meta: ^1.7.0
